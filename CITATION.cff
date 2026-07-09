@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Koopman-MPC for activated-sludge aeration"
+abstract: >-
+  Convex, real-time Koopman-operator model predictive control of activated-sludge
+  aeration including nitrous oxide, with a five-tank ASM1 multi-input extension.
+authors:
+  - family-names: Arda
+    given-names: Bayram
+    orcid: "https://orcid.org/0000-0002-0921-9418"
+    affiliation: "Department of Electronics and Automation, Gaziantep University, Gaziantep, Turkey"
+license: MIT
+version: "1.0.0"
+date-released: "2026-01-01"
+# After archiving on Zenodo, replace with the assigned DOI:
+# doi: "10.5281/zenodo.XXXXXXX"

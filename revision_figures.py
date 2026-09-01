@@ -11,9 +11,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from resultspath import load as load_results
+
 
 def fig_dt():
-    rows = json.load(open('results_revision.json'))['dt']
+    rows = load_results('results_revision.json')['dt']
     dt = [r['dt_min'] for r in rows]
     fig, axs = plt.subplots(1, 4, figsize=(14.5, 3.6))
 

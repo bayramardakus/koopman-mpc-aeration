@@ -16,6 +16,8 @@ import sys
 
 import numpy as np
 
+from resultspath import load as load_results
+
 CACHE_VAF = 'cache_vaf.npz'
 CACHE_LOOP = 'cache_loop.npz'
 CACHE_CASCADE = 'cache_cascade.npz'
@@ -62,7 +64,7 @@ def make_vaf():
     def vaf(pred, true):
         return float(max(0.0, 100.0 * (1.0 - np.var(true - pred) / np.var(true))))
 
-    arch = json.load(open('results_revision.json'))['vaf']
+    arch = load_results('results_revision.json')['vaf']
     print('  Figure 2 -- VAF at the six-step horizon:')
     for o, nm in enumerate(RA.ONAMES):
         _check(f'VAF Koopman {nm}', vaf(yk[:, 5, o], yt[:, 5, o]),
@@ -91,7 +93,7 @@ def make_loop():
     log_pi, _ = K.run_pi_fast(x_ss, K.PIController(Kp=40.0, Ki=200.0), days=10.0)
     log_ab, _ = K.run_pi_fast(x_ss, K.CascadeABAC(), days=10.0)
 
-    arch = json.load(open('results.json'))['table2']
+    arch = load_results('results.json')['table2']
     print('  Figure 4 -- closed-loop indices:')
     for nm, log in [('MPC', log_mpc), ('PI', log_pi), ('ABAC', log_ab)]:
         m = K.metrics(log)
@@ -118,7 +120,7 @@ def make_cascade():
     lb, _ = B.run_baseline(x_ss, B.CascadePI(), days=12.0)
 
     try:
-        arch = json.load(open('results_cascade_final.json'))
+        arch = load_results('results_cascade_final.json')
     except Exception:
         arch = {}
     print('  Figure 7 -- cascade indices:')

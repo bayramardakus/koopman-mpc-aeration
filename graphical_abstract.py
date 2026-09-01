@@ -6,6 +6,7 @@ abstract cannot drift from the ten-realization statistics reported in Table 11.
 Controller colours match Figures 4, 6 and 9.
 """
 import json
+import os
 
 import matplotlib
 matplotlib.use('Agg')
@@ -13,12 +14,13 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 
 import figstyle as S
+from resultspath import load as load_results
 
 S.apply()
 
 BLUE, TEAL, DARK, GREY = '#2b6cb0', '#0f766e', '#1a202c', '#5b6a7d'
 
-st = json.load(open('results_revision.json'))['seeds']['stats']
+st = load_results('results_revision.json')['seeds']['stats']
 NAMES = ['MPC', 'PI', 'ABAC']
 vals = [st[n]['NH_viol_h']['mean'] for n in NAMES]
 errs = [st[n]['NH_viol_h']['sd'] for n in NAMES]
@@ -99,6 +101,7 @@ fig.text(0.5, 0.012,
          'model-dependent, the compliance result is not.',
          ha='center', fontsize=8.4, color=GREY, style='italic')
 plt.tight_layout(rect=[0, 0.045, 1, 1])
+os.makedirs('out', exist_ok=True)
 fig.savefig('out/graphical_abstract.png', dpi=400)
 fig.savefig('out/graphical_abstract.pdf')
 plt.close(fig)

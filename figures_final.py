@@ -18,18 +18,33 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 import figstyle as S
+from resultspath import load as load_results
 
 S.apply()
 
-REV = json.load(open('results_revision.json'))
-RES = json.load(open('results.json'))
+
+def load_cache(name):
+    """Load a trajectory cache, saying how to make it if it is not there."""
+    import os
+    if not os.path.exists(name):
+        raise SystemExit(
+            f'{name} is missing. The trajectory caches are build products and are '
+            f'not tracked; regenerate them with\n'
+            f'    python koopman_mpc.py ident\n'
+            f'    python koopman_mpc_cascade.py ident\n'
+            f'    python figdata.py\n'
+            f'Figures 1, 3, 5, 6, 8, 9 and 10 need no cache and can be drawn now.')
+    return np.load(name)
+
+REV = load_results('results_revision.json')
+RES = load_results('results.json')
 ONAMES = ['DO', 'S_NH', 'TN', 'S_N2O']
 
 
 # ============================================================== Figure 2
 def figure2():
     """Six-step-ahead prediction on the held-out segment."""
-    d = np.load('cache_vaf.npz')
+    d = load_cache('cache_vaf.npz')
     t, yk, yl, yt = d['t'], d['yk'], d['yl'], d['yt']
     vaf = REV['vaf']
     h = 5                                       # the sixth step
@@ -100,7 +115,7 @@ def figure3():
 # ============================================================== Figure 4
 def figure4():
     """Single-reactor closed loop over the 10-day dry/rain/storm window."""
-    d = np.load('cache_loop.npz')
+    d = load_cache('cache_loop.npz')
     m = RES['table2']
 
     spec = [('DO', 'DO\n(mg O$_2$ L$^{-1}$)', 1.0, 2.0, ':'),
@@ -272,8 +287,8 @@ def figure6():
 # ============================================================== Figure 7
 def figure7():
     """Five-tank cascade closed loop over the twelve-day window."""
-    d = np.load('cache_cascade.npz')
-    fin = json.load(open('results_cascade_final.json'))
+    d = load_cache('cache_cascade.npz')
+    fin = load_results('results_cascade_final.json')
 
     spec = [('DO', 'DO\n(mg O$_2$ L$^{-1}$)', 1.0, None),
             ('KLa', '$K_L a$\n(d$^{-1}$)', 1.0, None),
@@ -329,7 +344,7 @@ def figure7():
 # ============================================================== Figure 8
 def figure8():
     """Cascade frontiers: each controller swept across its own aggressiveness."""
-    fr = json.load(open('results_bsm2_frontier.json'))
+    fr = load_results('results_cascade_frontier.json')
     k, c = fr['koopman'], fr['cascade']
     kAE = [m['AE_kWh_d'] for m in k]
     cAE = [m['AE_kWh_d'] for m in c]
@@ -429,7 +444,7 @@ def figure9():
 # ============================================================== Figure 10
 def figure10():
     """Steady-state N2O characteristic of the design and evaluation plants."""
-    rows = json.load(open('results_crossmodel_char.json'))
+    rows = load_results('results_crossmodel_char.json')
     do_d = [r['DO_design'] for r in rows]
     ef_d = [r['EF_design'] for r in rows]
     do_e = [r['DO_eval'] for r in rows]

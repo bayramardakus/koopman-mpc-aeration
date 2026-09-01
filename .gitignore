@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.npz
+*.npy
+
+# distribution artifacts, never committed into the repo they describe
+*.bundle

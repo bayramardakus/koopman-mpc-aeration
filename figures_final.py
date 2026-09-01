@@ -207,14 +207,10 @@ def figure5():
     ax2b.tick_params(axis='y', colors=S.C_PI)
     ax2b.grid(False)
     axs[2].set_title('Operating indices')
-    S.headroom(axs[2], frac=0.30)
-    S.headroom(ax2b, frac=0.30)
-    axs[2].legend(handles=[Line2D([], [], color='#2ca02c', marker='o', ms=4,
-                                  label='aeration energy (left)'),
-                           Line2D([], [], color=S.C_PI, marker='s', ms=4,
-                                  ls='--', label='N$_2$O (right)')],
-                  loc='upper left', fontsize=7.0, handlelength=1.8,
-                  borderpad=0.35, labelspacing=0.3)
+    # no legend: each series carries the colour of its own axis label, which
+    # says which scale it belongs to without a "(left)"/"(right)" gloss
+    S.headroom(axs[2], frac=0.14)
+    S.headroom(ax2b, frac=0.14)
 
     axs[3].semilogy(x, [r['ms_mean'] for r in rows], 'o-', color='#9467bd',
                     label='mean')
@@ -234,7 +230,9 @@ def figure5():
 
     fig.suptitle('Control-interval study: prediction horizon held at three '
                  'hours of physical time', y=1.01, fontsize=9.0)
-    fig.subplots_adjust(hspace=0.62, wspace=0.42)
+    # wider than the default: panel (c) carries a right-hand axis label, which
+    # would otherwise sit against panel (d)'s left-hand one
+    fig.subplots_adjust(hspace=0.62, wspace=0.52)
     S.save(fig, 'Figure5')
 
 
@@ -377,14 +375,25 @@ def figure8():
     axs[0].annotate('%.1f / %.1f' % c_set[-1],
                     (cAE[-1], c[-1]['NH_viol_h']), textcoords='offset points',
                     xytext=(7, -3), ha='left', fontsize=6.8, color=S.C_PI)
+    # the MPC cluster sits on the zero line, where a label would collide with
+    # the tick labels; it goes in the empty upper right of the panel instead,
+    # with a leader down to the cluster it describes
     axs[0].annotate('back-off %.1f\u2013%.1f mgN L$^{-1}$:\nno violation at any setting'
                     % (k_bo[0], k_bo[-1]),
-                    (float(np.mean(kAE)), 0.0), textcoords='offset points',
-                    xytext=(0, 16), ha='center', fontsize=6.8, color=S.C_MPC)
+                    (float(np.mean(kAE)), 0.0),
+                    xycoords='data', textcoords='axes fraction',
+                    xytext=(0.62, 0.52), ha='center', va='center',
+                    fontsize=6.8, color=S.C_MPC,
+                    arrowprops=dict(arrowstyle='-', color=S.C_MPC, lw=0.7,
+                                    shrinkB=6))
 
-    axs[1].legend(loc='center', bbox_to_anchor=(0.5, 0.60), fontsize=7.0,
-                  handlelength=1.8, borderpad=0.45)
-    fig.subplots_adjust(wspace=0.34)
+    # one legend for both panels, below the axes, so neither plot carries a box
+    # over its data
+    handles, labs = axs[0].get_legend_handles_labels()
+    fig.legend(handles, labs, loc='lower center', ncol=2, fontsize=7.2,
+               handlelength=1.8, columnspacing=2.2, frameon=False,
+               bbox_to_anchor=(0.5, -0.02))
+    fig.subplots_adjust(wspace=0.34, bottom=0.26)
     S.save(fig, 'Figure8')
 
 
@@ -465,10 +474,13 @@ def figure10():
                 (pd_, max(ef_d)), textcoords='offset points', xytext=(26, 6),
                 fontsize=7.4, color=S.C_MPC, va='center',
                 arrowprops=dict(arrowstyle='-', color=S.C_MPC, lw=0.8))
+    # below the evaluation curve rather than above it: placed above, the leader
+    # had to cross the design curve to reach its own peak
     ax.annotate('evaluation model:\nmaximum at DO $\\approx$ %.1f' % pe_,
-                (pe_, max(ef_e)), textcoords='offset points', xytext=(30, 34),
-                fontsize=7.4, color=S.C_PI, va='center',
-                arrowprops=dict(arrowstyle='-', color=S.C_PI, lw=0.8))
+                (pe_, max(ef_e)), textcoords='offset points', xytext=(34, -46),
+                fontsize=7.4, color=S.C_PI, va='center', ha='left',
+                arrowprops=dict(arrowstyle='-', color=S.C_PI, lw=0.8,
+                                shrinkB=4))
 
     ax.set_xlabel('mean dissolved oxygen (mg O$_2$ L$^{-1}$)')
     ax.set_ylabel('emission factor (% of influent N)')

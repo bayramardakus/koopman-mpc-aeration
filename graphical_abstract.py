@@ -60,7 +60,11 @@ ax.text(0.30, 0.595, 'data', fontsize=8.6, color=GREY)
 box(0.20, 0.10, 0.58, 0.17, 'aeration $K_La$  +  recirculation $Q_a$',
     '#dcfce7', 10.0, ec=TEAL)
 arr((0.73, 0.38), (0.73, 0.27), c=TEAL)
-arr((0.20, 0.185), (0.06, 0.185), c=TEAL)
+# one continuous elbow back to the plant: a plain leg to the corner, then the
+# only arrowhead where the path actually arrives. Drawn as two patches with the
+# same endpoint, so the corner closes.
+ax.add_patch(FancyArrowPatch((0.186, 0.185), (0.045, 0.185), arrowstyle='-',
+                             mutation_scale=14, lw=1.8, color=TEAL, zorder=4))
 ax.add_patch(FancyArrowPatch((0.045, 0.185), (0.045, 0.66), arrowstyle='-|>',
                              mutation_scale=14, lw=1.8, color=TEAL, zorder=4))
 ax.text(0.49, 0.030,

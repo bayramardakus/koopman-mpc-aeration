@@ -13,11 +13,29 @@ Stages:
 REFERENCE IMPLEMENTATION -- not the official BSM2. See plant_model.py header.
 """
 import numpy as np, time, json
+if not hasattr(np,'trapezoid'): np.trapezoid=np.trapz  # numpy 1.x/2.x compat
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy import sparse
 import osqp
+
+
+# --- solver settings (revision): tight tolerances + polishing, so the closed loop
+# --- is invariant to the OSQP build. See "Computational environment" in the paper.
+def osqp_settings(max_iter=20000):
+    s = dict(verbose=False, warm_start=True,
+             eps_abs=1e-7, eps_rel=1e-7,
+             eps_prim_inf=1e-9, eps_dual_inf=1e-9,
+             max_iter=max_iter,
+             # OSQP derives its default adaptive-rho interval from a wall-clock
+             # setup-time measurement, which makes the iterate sequence machine- and
+             # load-dependent. Fixing the interval makes every solve deterministic.
+             adaptive_rho=True, adaptive_rho_interval=50)
+    s['polish' if osqp.__version__.startswith('0.') else 'polishing'] = True
+    return s
+
+R_DU = 3e-1   # move-suppression weight (set by tuning study)
 import plant_model as PM
 
 rng = np.random.default_rng(7)
@@ -130,15 +148,16 @@ def local_predict(lin,x0,Useq):
 # 5. Condensed-QP MPC
 # ----------------------------------------------------------------------------
 class KoopMPC:
-    def __init__(self, km, Np=12, w_E=1.0, w_N=1.0, q_do=0.0, r_du=3e-3,
-                 rho=8e3, eps_s=1.0, s_n2o=0.10, n2o_mode="emission", slp_iters=2):
+    def __init__(self, km, Np=12, w_E=1.0, w_N=1.0, q_do=0.0, r_du=None,
+                 rho=8e3, eps_s=1.0, s_n2o=0.10, n2o_mode="emission", slp_iters=2,
+                 offset_free=True):
         # Economic MPC. n2o_mode="emission": penalize the ACTUAL fugitive N2O
         # emission alpha*KLa*S_N2O (bilinear in the input and a lifted output),
         # handled by successive linearization (SLP); "dissolved": legacy proxy on
         # S_N2O (kept for the ablation reported in the paper). q_do=0 -> economic.
         self.km=km; self.Np=Np; self.w_E=w_E; self.w_N=w_N; self.s_n2o=s_n2o
-        self.q_do=q_do; self.r_du=r_du; self.rho=rho; self.eps_s=eps_s
-        self.n2o_mode=n2o_mode; self.slp_iters=slp_iters
+        self.q_do=q_do; self.r_du=(R_DU if r_du is None else r_du); self.rho=rho; self.eps_s=eps_s
+        self.n2o_mode=n2o_mode; self.slp_iters=slp_iters; self.offset_free=offset_free
         self.alpha_n2o=PM.P['alpha_n2o']
         self._build_static()
         self.u_prev=150.0; self.warm=None
@@ -202,7 +221,7 @@ class KoopMPC:
         z=self.km.lift(x).ravel(); Np=self.Np
         # ---- offset-free correction: update output-disturbance bias ----
         y_meas=np.array([x[0],x[1],x[1]+x[2],x[6]])
-        if self.y_pred_next is not None:
+        if self.y_pred_next is not None and self.offset_free:
             self.bias += 0.5*(y_meas-self.y_pred_next)   # innovation filter
         b=self.bias
         gd=self.dist_contrib(Dseq)
@@ -238,8 +257,7 @@ class KoopMPC:
             q=np.concatenate([q_U_base+q_n2o, self.rho*np.ones(2*Np)])
             if self._prob is None:
                 self._prob=osqp.OSQP()
-                self._prob.setup(self.P,q,self.A_c,l,u,verbose=False,warm_start=True,
-                                 eps_abs=1e-4,eps_rel=1e-4,max_iter=4000,polish=False)
+                self._prob.setup(self.P,q,self.A_c,l,u,**osqp_settings(20000))
             else:
                 self._prob.update(q=q,l=l,u=u)
             t0=time.perf_counter(); res=self._prob.solve(); solve_ms+=(time.perf_counter()-t0)*1e3
@@ -341,13 +359,13 @@ def run_closed_loop(x0, controller, days=14.0, kind="mpc",
 
 def metrics(log):
     dt=float(log['t'][1]-log['t'][0])                      # actual log spacing
-    ae=np.trapz(PM.P['So_sat']/(1.8*1000.0)*PM.P['V']*log['KLa'],dx=dt)/((log['t'][-1]-log['t'][0]))
-    n2o=np.trapz(log['N2O_em'],dx=dt)                      # gN over window
+    ae=np.trapezoid(PM.P['So_sat']/(1.8*1000.0)*PM.P['V']*log['KLa'],dx=dt)/((log['t'][-1]-log['t'][0]))
+    n2o=np.trapezoid(log['N2O_em'],dx=dt)                      # gN over window
     days=log['t'][-1]-log['t'][0]
     n2o_kg_d=n2o/1000.0/days
     nh_viol_h=np.sum(log['NH']>NH_LIM)*dt*24.0            # hours in window
     tn_viol_h=np.sum(log['TN']>TN_LIM)*dt*24.0
-    eqi=np.trapz(2.0*log['NH']+1.0*(log['TN']-log['NH']),dx=dt)/days  # proxy EQI (N loads)
+    eqi=np.trapezoid(2.0*log['NH']+1.0*(log['TN']-log['NH']),dx=dt)/days  # proxy EQI (N loads)
     return dict(AE_kWh_d=float(ae), N2O_kgN_d=float(n2o_kg_d),
                 NH_mean=float(np.mean(log['NH'])), NH_viol_h=float(nh_viol_h),
                 TN_viol_h=float(tn_viol_h), NH_peak=float(np.max(log['NH'])),

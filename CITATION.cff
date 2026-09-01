@@ -5,12 +5,14 @@ abstract: >-
   Convex, real-time Koopman-operator model predictive control of activated-sludge
   aeration including nitrous oxide, with a five-tank ASM1 multi-input extension.
 authors:
-  - family-names: Arda
-    given-names: Bayram
+  - family-names: "Kuş"
+    given-names: "Bayram Arda"
     orcid: "https://orcid.org/0000-0002-0921-9418"
     affiliation: "Department of Electronics and Automation, Gaziantep University, Gaziantep, Turkey"
 license: MIT
-version: "1.0.0"
-date-released: "2026-01-01"
-# After archiving on Zenodo, replace with the assigned DOI:
-# doi: "10.5281/zenodo.XXXXXXX"
+version: "2.0.0"
+date-released: "2026-09-01"
+doi: "10.5281/zenodo.21281024"
+# NOTE: the DOI above is the FIRST release (v1.0.0). Cutting a new Zenodo version for
+# v2.0.0 mints a new version DOI; replace it here and in the manuscript's Data
+# Availability Statement at the same time, so the two cannot disagree.
